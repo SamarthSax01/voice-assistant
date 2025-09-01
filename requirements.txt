@@ -1,4 +1,5 @@
 streamlit
-streamlit-audiorecorder
+git+https://github.com/stefanrmmr/streamlit-audiorecorder
 openai
 pyttsx3
+
