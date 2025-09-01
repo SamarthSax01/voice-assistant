@@ -6,7 +6,7 @@ import os
 from pydub import AudioSegment
 
 st.title("🎤 Samarth's Voice Assistant")
-st.write("Talk to me, and I'll reply!)
+st.write("Talk to me, and I'll reply!")
 
 recognizer = sr.Recognizer()
 
