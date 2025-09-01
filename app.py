@@ -1,79 +1,52 @@
 import streamlit as st
+from audiorecorder import audiorecorder
 import speech_recognition as sr
 import webbrowser
 from gtts import gTTS
 import os
-import datetime
-import random
-from audiorecorder import audiorecorder
+import tempfile
 
-st.title("🎤 Smart Voice Assistant")
-st.write("Say a command and I will respond...")
+st.title("🎤 Voice Assistant")
 
-recognizer = sr.Recognizer()
-
-# Function to speak
-def speak(text):
-    tts = gTTS(text)
-    tts.save("reply.mp3")
-    st.audio("reply.mp3", format="audio/mp3")
-
-# Handle commands
-def process_command(text):
-    if "youtube" in text:
-        st.write("Opening YouTube...")
-        webbrowser.open("https://youtube.com")
-        speak("Opening YouTube")
-
-    elif "google" in text:
-        st.write("Opening Google...")
-        webbrowser.open("https://google.com")
-        speak("Opening Google")
-
-    elif "gmail" in text:
-        st.write("Opening Gmail...")
-        webbrowser.open("https://mail.google.com")
-        speak("Opening Gmail")
-
-    elif "time" in text:
-        current_time = datetime.datetime.now().strftime("%I:%M %p")
-        st.write(f"The time is {current_time}")
-        speak(f"The time is {current_time}")
-
-    elif "hello" in text or "hi" in text:
-        reply = "Hello! How can I help you today?"
-        st.write(reply)
-        speak(reply)
-
-    elif "joke" in text:
-        jokes = [
-            "Why don’t scientists trust atoms? Because they make up everything!",
-            "I told my computer a joke, but it didn’t laugh. Too many bytes!",
-            "Why was the math book sad? Because it had too many problems."
-        ]
-        joke = random.choice(jokes)
-        st.write(joke)
-        speak(joke)
-
-    elif text:
-        reply = f"You said {text}"
-        st.write(reply)
-        speak(reply)
-
-# Audio recorder widget
-audio = audiorecorder("🎙️ Start recording", "⏹️ Stop recording")
+# Record audio using streamlit-audiorecorder
+audio = audiorecorder("Click to record", "Recording...")
 
 if len(audio) > 0:
     st.audio(audio.export().read(), format="audio/wav")
 
-    # Save recorded audio
-    audio.export("input.wav", format="wav")
+    # Save to temp wav file
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_wav:
+        audio.export(temp_wav.name, format="wav")
+        temp_path = temp_wav.name
 
-    with sr.AudioFile("input.wav") as source:
+    # Recognize speech
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(temp_path) as source:
         audio_data = recognizer.record(source)
         try:
             text = recognizer.recognize_google(audio_data)
-            st.write(f"You said: {text}")
-            process_command(text.lower())
-        except:
-            st.write("Sorry, I couldn't understand.")
+            st.write("You said:", text)
+
+            # Actions
+            if "YouTube" in text:
+                st.write("🔗 Opening YouTube...")
+                webbrowser.open("https://www.youtube.com")
+            elif "Google" in text:
+                st.write("🔗 Opening Google...")
+                webbrowser.open("https://www.google.com")
+            elif "Instagram" in text:
+                st.write("🔗 Opening Instagram...")
+                webbrowser.open("https://www.instagram.com")
+            else:
+                st.write("⚠️ Command not recognized.")
+
+            # Voice reply
+            tts = gTTS(text="Okay, " + text)
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_mp3:
+                tts.save(temp_mp3.name)
+                st.audio(temp_mp3.name, format="audio/mp3")
+
+        except sr.UnknownValueError:
+            st.error("Sorry, could not understand audio.")
+        except sr.RequestError:
+            st.error("Could not request results, check internet connection.")
