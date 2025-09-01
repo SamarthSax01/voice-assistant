@@ -5,8 +5,8 @@ from gtts import gTTS
 import os
 from pydub import AudioSegment
 
-st.title("🎤 Voice Assistant (No PyAudio)")
-st.write("Record your voice and let me respond!")
+st.title("🎤 Samarth's Voice Assistant")
+st.write("Talk to me, and I'll reply!)
 
 recognizer = sr.Recognizer()
 
