@@ -1,51 +1,69 @@
 import streamlit as st
-from streamlit_audiorecorder import audiorecorder
-import openai
-import pyttsx3
-import tempfile
+from audiorecorder import audiorecorder
+import speech_recognition as sr
+from gtts import gTTS
 import os
-import webbrowser
+from pydub import AudioSegment
 
-# Set your OpenAI API key (use Streamlit secrets in real deploy)
-openai.api_key = st.secrets["OPENAI_API_KEY"]
+st.title("🎤 Voice Assistant (No PyAudio)")
+st.write("Record your voice and let me respond!")
 
-st.title("🎤 Voice Assistant with Streamlit")
+recognizer = sr.Recognizer()
 
-# Record audio
-audio = audiorecorder("Click to record", "Recording...")
+def recognize_audio(audio_bytes):
+    """Convert recorded audio (bytes) into text"""
+    with open("input.wav", "wb") as f:
+        f.write(audio_bytes)
+
+    # Convert to wav format
+    audio = AudioSegment.from_file("input.wav")
+    audio.export("converted.wav", format="wav")
+
+    with sr.AudioFile("converted.wav") as source:
+        recorded_audio = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(recorded_audio)
+            return text
+        except:
+            return ""
+
+# Record audio in Streamlit
+audio = audiorecorder("🎙️ Click to Record", "🔴 Recording...")
 
 if len(audio) > 0:
-    # Save temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmpfile:
-        audio.export(tmpfile.name, format="wav")
-        audio_path = tmpfile.name
+    # Save recording
+    audio.export("recorded.wav", format="wav")
+    st.audio("recorded.wav", format="audio/wav")
 
-    st.audio(audio_path, format="audio/wav")
+    # Recognize speech
+    text = recognize_audio(audio.export().read())
+    if text:
+        st.write(f"You said: **{text}**")
 
-    # ---- Speech to Text ----
-    with open(audio_path, "rb") as f:
-        transcript = openai.Audio.transcriptions.create(
-            model="gpt-4o-transcribe", 
-            file=f
-        )
-    user_text = transcript.text
-    st.write("🗣️ You said:", user_text)
+        response = None
+        link = None
 
-    # ---- ChatGPT response ----
-    response = openai.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": user_text}]
-    )
-    answer = response.choices[0].message.content
-    st.write("🤖 Assistant:", answer)
+        if "youtube" in text.lower():
+            response = "✅ Opening YouTube..."
+            link = "https://youtube.com"
+        elif "google" in text.lower():
+            response = "✅ Opening Google..."
+            link = "https://www.google.com"
+        elif "whatsapp" in text.lower():
+            response = "✅ Opening WhatsApp Web..."
+            link = "https://web.whatsapp.com"
+        elif "instagram" in text.lower() or "insta" in text.lower():
+            response = "✅ Opening Instagram..."
+            link = "https://www.instagram.com"
 
-    # ---- Text to Speech ----
-    engine = pyttsx3.init()
-    engine.save_to_file(answer, "response.mp3")
-    engine.runAndWait()
-    st.audio("response.mp3", format="audio/mp3")
+        if response:
+            st.success(response)
+            st.markdown(f"[Click here to open]({link})", unsafe_allow_html=True)
 
-    # ---- Example Action ----
-    if "youtube" in user_text.lower():
-        st.write("🔗 Opening YouTube...")
-        webbrowser.open("https://www.youtube.com")
+        # Generate voice reply
+        reply = f"You said {text}"
+        tts = gTTS(reply)
+        tts.save("reply.mp3")
+        st.audio("reply.mp3", format="audio/mp3")
+    else:
+        st.warning("⚠️ Sorry, I couldn’t understand your speech.")
