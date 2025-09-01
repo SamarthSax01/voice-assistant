@@ -1,5 +1,7 @@
 streamlit
-git+https://github.com/stefanrmmr/streamlit-audiorecorder
-openai
-pyttsx3
+speechrecognition
+gTTS
+streamlit-audiorecorder
+pydub
+
 
