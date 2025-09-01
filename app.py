@@ -5,30 +5,18 @@ from gtts import gTTS
 import os
 import datetime
 import random
+from audiorecorder import audiorecorder
 
 st.title("🎤 Smart Voice Assistant")
 st.write("Say a command and I will respond...")
 
 recognizer = sr.Recognizer()
 
-# Function to listen
-def listen():
-    with sr.Microphone() as source:
-        st.write("Listening...")
-        audio = recognizer.listen(source)
-        try:
-            command = recognizer.recognize_google(audio)
-            st.write(f"You said: {command}")
-            return command.lower()
-        except:
-            st.write("Sorry, I couldn't understand.")
-            return ""
-
 # Function to speak
 def speak(text):
     tts = gTTS(text)
     tts.save("reply.mp3")
-    os.system("start reply.mp3")
+    st.audio("reply.mp3", format="audio/mp3")
 
 # Handle commands
 def process_command(text):
@@ -72,8 +60,20 @@ def process_command(text):
         st.write(reply)
         speak(reply)
 
-# Button to activate mic
-if st.button("🎙️ Speak"):
-    text = listen()
-    if text:
-        process_command(text)
+# Audio recorder widget
+audio = audiorecorder("🎙️ Start recording", "⏹️ Stop recording")
+
+if len(audio) > 0:
+    st.audio(audio.export().read(), format="audio/wav")
+
+    # Save recorded audio
+    audio.export("input.wav", format="wav")
+
+    with sr.AudioFile("input.wav") as source:
+        audio_data = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(audio_data)
+            st.write(f"You said: {text}")
+            process_command(text.lower())
+        except:
+            st.write("Sorry, I couldn't understand.")
